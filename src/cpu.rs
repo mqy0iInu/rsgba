@@ -100,16 +100,25 @@ impl CPU {
         }
     }
 
-    // Thumb(16bit)
-    fn fetch_op_thumb(&mut self) -> u16 {
-        // TODO
-        0
+    // Thumb命令(16bit)
+    fn op_thumb(&mut self) {
+        unsafe {
+            // Fetch Thumb
+            let _op: u16 = self.bus.read_hword(self.reg.pc);
+            // TODO Decode Thumb
+            // TODO Exec Thumb
+        }
     }
 
-    // ARM(16bit)
-    fn fetch_op_arm(&mut self) -> u32 {
-        // TODO
-        0
+    // ARM命令(32bit)
+    fn op_arm(&mut self) {
+        unsafe {
+            // Fetch ARM
+            let _op: u32 = ((self.bus.read_hword(self.reg.pc) as u32) << 16) |
+                            (self.bus.read_hword(self.reg.pc + 1) as u32);
+            // TODO Decode ARM
+            // TODO Exec ARM
+        }
     }
 
     fn decode_and_exec(&mut self, _op: u32) {
@@ -118,15 +127,12 @@ impl CPU {
     }
 
     pub fn proc(&mut self) {
-        let mut _ret: u32 = 0;
-
-        // Fetch
+        // Fetch & Decode & Execute
         match self.reg.cpsr.contains(PSR::T) {
-            false => _ret = self.fetch_op_arm(),
-            true => _ret = self.fetch_op_thumb() as u32,
+            false => self.op_thumb(),
+            true => self.op_arm(),
         }
 
-        // Decode & Execute
-        self.decode_and_exec(_ret);
+        self.bus.update(self.tick);
     }
 }

@@ -32,51 +32,268 @@ impl Bus {
         }
     }
 
-    pub fn read(&mut self, addr: u32) -> u8 {
-        match addr {
-            // BIOS ※16bit Bus
-            0x00000000..=0x00003FFF => todo!("BIOS Read"),
-            // EWRAM(External Work RAM) ※16bit Bus
-            0x02000000..=0x0203FFFF => self.ewram[(addr & 0x3FFFF) as usize],
-            // IRAM(Internal Work RAM)
-            0x03000000..=0x03007FFF => self.iram[(addr & 0x7FFF) as usize],
-            // I/O
-            0x04000000..=0x040003FF  => todo!("I/O Reg Read"),
-            // Palette RAM ※16bit Bus
-            0x05000000..=0x050003FF  => self.pram[(addr & 0x03FF) as usize],
-            // VRAM ※16bit Bus
-            0x06000000..=0x06017FFF  => self.vram[(addr & 0x17FFF) as usize],
-            // OAM
-            0x07000000..=0x070003FF  => self.oam[(addr & 0x03FF) as usize],
-            // Game Pak ROM ※16bit Bus
-            0x08000000..=0x09FFFFFF  => todo!("Game Pak ROM Read"),
-            // Game Pak ROM Image 1 ※16bit Bus
-            0x0A000000..=0x0BFFFFFF  => todo!("Game Pak ROM Image 1 Read"),
-            // Game Pak ROM Image 2 ※16bit Bus
-            0x0C000000..=0x0DFFFFFF  => todo!("Game Pak ROM Image 2 Read"),
-            // Game Pak RAM ※8bit Bus
-            0x0E000000..=0x0E00FFFF  => todo!("Game Pak RAM Read"),
-            _ => panic!("[ERR] Invalid Read Addr ${:#08X}", addr),
+    fn read_u8(&mut self, ptr: *const u8) -> u8 {
+        unsafe { *ptr }
+    }
+
+    fn read_u16(&mut self, ptr: *const u8) -> u16 {
+        unsafe {
+            let bytes = std::slice::from_raw_parts(ptr, 2);
+            u16::from_le_bytes([bytes[0], bytes[1]])
         }
     }
 
-    pub fn write(&mut self, addr: u32, val: u8) {
+    fn read_u32(&mut self, ptr: *const u8) -> u32 {
+        unsafe {
+            let bytes = std::slice::from_raw_parts(ptr, 4);
+            u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
+        }
+    }
+
+    fn write_u8(&mut self, ptr: *mut u8, val: u8) {
+        unsafe {
+            *ptr = val;
+        }
+    }
+
+    fn write_u16(&mut self, ptr: *mut u8, val: u16) {
+        unsafe {
+            let bytes = val.to_le_bytes();
+            let dest = std::slice::from_raw_parts_mut(ptr, 2);
+            dest.copy_from_slice(&bytes);
+        }
+    }
+
+    fn write_u32(&mut self, ptr: *mut u8, val: u32) {
+        unsafe {
+            let bytes = val.to_le_bytes();
+            let dest = std::slice::from_raw_parts_mut(ptr, 4);
+            dest.copy_from_slice(&bytes);
+        }
+    }
+
+    pub unsafe fn read_byte(&mut self, addr: u32) -> u8 {
         match addr {
-            // EWRAM(External Work RAM) ※16bit Bus
-            0x02000000..=0x0203FFFF => self.ewram[(addr & 0x3FFFF) as usize] = val,
+            // BIOS
+            0x00000000..=0x00003FFF => todo!("BIOS Read"),
+            // EWRAM(External Work RAM)
+            0x02000000..=0x0203FFFF => {
+                let ptr = self.ewram.as_mut_ptr().add((addr & 0x3FFFF) as usize);
+                self.read_u8(ptr)
+            },
             // IRAM(Internal Work RAM)
-            0x03000000..=0x03007FFF => self.iram[(addr & 0x7FFF) as usize] = val,
+            0x03000000..=0x03007FFF => {
+                let ptr = self.iram.as_mut_ptr().add((addr & 0x7FFF) as usize);
+                self.read_u8(ptr)
+            },
             // I/O
-            0x04000000..=0x040003FF  => todo!("I/O Reg Read"),
-            // Palette RAM ※16bit Bus
-            0x05000000..=0x050003FF  => self.pram[(addr & 0x03FF) as usize] = val,
-            // VRAM ※16bit Bus
-            0x06000000..=0x06017FFF  => self.vram[(addr & 0x17FFF) as usize] = val,
+            0x04000000..=0x040003FF => todo!("I/O Reg Read"),
+            // Palette RAM
+            0x05000000..=0x050003FF => {
+                let ptr = self.pram.as_mut_ptr().add((addr & 0x03FF) as usize);
+                self.read_u8(ptr)
+            },
+            // VRAM
+            0x06000000..=0x06017FFF => {
+                let ptr = self.vram.as_mut_ptr().add((addr & 0x17FFF) as usize);
+                self.read_u8(ptr)
+            },
             // OAM
-            0x07000000..=0x070003FF  => self.oam[(addr & 0x03FF) as usize] = val,
-            // Game Pak RAM ※8bit Bus
-            0x0E000000..=0x0E00FFFF  => todo!("Game Pak RAM Write"),
-            _ => panic!("[ERR] Invalid Write Addr ${:#08X}", addr),
+            0x07000000..=0x070003FF => {
+                let ptr = self.oam.as_mut_ptr().add((addr & 0x03FF) as usize);
+                self.read_u8(ptr)
+            },
+            // Game Pak ROM/Flash
+            0x08000000..=0x09FFFFFF => todo!("Game Pak ROM/Flash Read"),
+            // Game Pak ROM/Flash Image 1
+            0x0A000000..=0x0BFFFFFF => todo!("Game Pak ROM/Flash Image 1 Read"),
+            // Game Pak ROM/Flash Image 2
+            0x0C000000..=0x0DFFFFFF => todo!("Game Pak ROM/Flash Image 2 Read"),
+            // Game Pak RAM
+            0x0E000000..=0x0E00FFFF => todo!("Game Pak RAM Read"),
+            _ => panic!("[ERR] Invalid 8bit Bus Read Addr ${:#08X}", addr),
+        }
+    }
+
+    pub unsafe fn read_hword(&mut self, addr: u32) -> u16 {
+        match addr {
+            // BIOS
+            0x00000000..=0x00003FFF => todo!("BIOS Read"),
+            // EWRAM(External Work RAM)
+            0x02000000..=0x0203FFFF => {
+                let ptr = self.ewram.as_mut_ptr().add((addr & 0x3FFFF) as usize);
+                self.read_u16(ptr)
+            },
+            // IRAM(Internal Work RAM)
+            0x03000000..=0x03007FFF => {
+                let ptr = self.iram.as_mut_ptr().add((addr & 0x7FFF) as usize);
+                self.read_u16(ptr)
+            },
+            // I/O
+            0x04000000..=0x040003FF => todo!("I/O Reg Read"),
+            // Palette RAM
+            0x05000000..=0x050003FF => {
+                let ptr = self.pram.as_mut_ptr().add((addr & 0x03FF) as usize);
+                self.read_u16(ptr)
+            },
+            // VRAM
+            0x06000000..=0x06017FFF => {
+                let ptr = self.vram.as_mut_ptr().add((addr & 0x17FFF) as usize);
+                self.read_u16(ptr)
+            },
+            // OAM
+            0x07000000..=0x070003FF => {
+                let ptr = self.oam.as_mut_ptr().add((addr & 0x03FF) as usize);
+                self.read_u16(ptr)
+            },
+            // Game Pak ROM/Flash
+            0x08000000..=0x09FFFFFF => todo!("Game Pak ROM/Flash Read"),
+            // Game Pak ROM/Flash Image 1
+            0x0A000000..=0x0BFFFFFF => todo!("Game Pak ROM/Flash Image 1 Read"),
+            // Game Pak ROM/Flash Image 2
+            0x0C000000..=0x0DFFFFFF => todo!("Game Pak ROM/Flash Image 2 Read"),
+            // Game Pak RAM
+            0x0E000000..=0x0E00FFFF => todo!("Game Pak RAM Read"),
+            _ => panic!("[ERR] Invalid 16bit Bus Read Addr ${:#08X}", addr),
+        }
+    }
+
+    pub unsafe fn read_word(&mut self, addr: u32) -> u32 {
+        match addr {
+            // BIOS
+            0x00000000..=0x00003FFF => todo!("BIOS Read"),
+            // EWRAM(External Work RAM)
+            0x02000000..=0x0203FFFF => {
+                let ptr = self.ewram.as_mut_ptr().add((addr & 0x3FFFF) as usize);
+                self.read_u32(ptr)
+            },
+            // IRAM(Internal Work RAM)
+            0x03000000..=0x03007FFF => {
+                let ptr = self.iram.as_mut_ptr().add((addr & 0x7FFF) as usize);
+                self.read_u32(ptr)
+            },
+            // I/O
+            0x04000000..=0x040003FF => todo!("I/O Reg Read"),
+            // Palette RAM
+            0x05000000..=0x050003FF => {
+                let ptr = self.pram.as_mut_ptr().add((addr & 0x03FF) as usize);
+                self.read_u32(ptr)
+            },
+            // VRAM
+            0x06000000..=0x06017FFF => {
+                let ptr = self.vram.as_mut_ptr().add((addr & 0x17FFF) as usize);
+                self.read_u32(ptr)
+            },
+            // OAM
+            0x07000000..=0x070003FF => {
+                let ptr = self.oam.as_mut_ptr().add((addr & 0x03FF) as usize);
+                self.read_u32(ptr)
+            },
+            // Game Pak ROM/Flash
+            0x08000000..=0x09FFFFFF => todo!("Game Pak ROM/Flash Read"),
+            // Game Pak ROM/Flash Image 1
+            0x0A000000..=0x0BFFFFFF => todo!("Game Pak ROM/Flash Image 1 Read"),
+            // Game Pak ROM/Flash Image 2
+            0x0C000000..=0x0DFFFFFF => todo!("Game Pak ROM/Flash Image 2 Read"),
+            _ => panic!("[ERR] Invalid 32bit Bus Read Addr ${:#08X}", addr),
+        }
+    }
+
+    pub unsafe fn write_byte(&mut self, addr: u32, val: u8) {
+        match addr {
+            // EWRAM(External Work RAM)
+            0x02000000..=0x0203FFFF => {
+                let ptr = self.ewram.as_mut_ptr().add((addr & 0x3FFFF) as usize);
+                self.write_u8(ptr, val);
+            },
+            // IRAM(Internal Work RAM)
+            0x03000000..=0x03007FFF => {
+                let ptr = self.iram.as_mut_ptr().add((addr & 0x7FFF) as usize);
+                self.write_u8(ptr, val);
+            },
+            // I/O
+            0x04000000..=0x040003FF => todo!("I/O Reg Write"),
+            // Palette RAM
+            0x05000000..=0x050003FF => {
+                let ptr = self.pram.as_mut_ptr().add((addr & 0x03FF) as usize);
+                self.write_u8(ptr, val);
+            },
+            // VRAM
+            0x06000000..=0x06017FFF => {
+                let ptr = self.vram.as_mut_ptr().add((addr & 0x17FFF) as usize);
+                self.write_u8(ptr, val);
+            },
+            // OAM
+            0x07000000..=0x070003FF => {
+                let ptr = self.oam.as_mut_ptr().add((addr & 0x03FF) as usize);
+                self.write_u8(ptr, val);
+            },
+            // Game Pak ROM/Flash
+            0x08000000..=0x09FFFFFF => todo!("Game Pak ROM/Flash Write"),
+            // Game Pak ROM/Flash Image 1
+            0x0A000000..=0x0BFFFFFF => todo!("Game Pak ROM/Flash Image 1 Write"),
+            // Game Pak ROM/Flash Image 2
+            0x0C000000..=0x0DFFFFFF => todo!("Game Pak ROM/Flash Image 2 Write"),
+            // Game Pak RAM
+            0x0E000000..=0x0E00FFFF => todo!("Game Pak RAM Write"),
+            _ => panic!("[ERR] Invalid 8bit Bus Write Addr ${:#08X}", addr),
+        }
+    }
+
+    pub unsafe fn write_hword(&mut self, addr: u32, val: u16) {
+        match addr {
+            // EWRAM(External Work RAM)
+            0x02000000..=0x0203FFFF => {
+                let ptr = self.ewram.as_mut_ptr().add((addr & 0x3FFFF) as usize);
+                self.write_u16(ptr, val);
+            },
+            // IRAM(Internal Work RAM)
+            0x03000000..=0x03007FFF => {
+                let ptr = self.iram.as_mut_ptr().add((addr & 0x7FFF) as usize);
+                self.write_u16(ptr, val);
+            },
+            // I/O
+            0x04000000..=0x040003FF => todo!("I/O Reg Write"),
+            // Palette RAM
+            0x05000000..=0x050003FF => {
+                let ptr = self.pram.as_mut_ptr().add((addr & 0x03FF) as usize);
+                self.write_u16(ptr, val);
+            },
+            // VRAM
+            0x06000000..=0x06017FFF => {
+                let ptr = self.vram.as_mut_ptr().add((addr & 0x17FFF) as usize);
+                self.write_u16(ptr, val);
+            },
+            // OAM
+            0x07000000..=0x070003FF => {
+                let ptr = self.oam.as_mut_ptr().add((addr & 0x03FF) as usize);
+                self.write_u16(ptr, val);
+            },
+            // Game Pak ROM/Flash
+            0x08000000..=0x09FFFFFF => todo!("Game Pak ROM/Flash Write"),
+            // Game Pak ROM/Flash Image 1
+            0x0A000000..=0x0BFFFFFF => todo!("Game Pak ROM/Flash Image 1 Write"),
+            // Game Pak ROM/Flash Image 2
+            0x0C000000..=0x0DFFFFFF => todo!("Game Pak ROM/Flash Image 2 Write"),
+            _ => panic!("[ERR] Invalid 16bit Bus Write Addr ${:#08X}", addr),
+        }
+    }
+
+    pub unsafe fn write_word(&mut self, addr: u32, val: u32) {
+        match addr {
+            // IRAM(Internal Work RAM)
+            0x03000000..=0x03007FFF => {
+                let ptr = self.iram.as_mut_ptr().add((addr & 0x7FFF) as usize);
+                self.write_u32(ptr, val);
+            },
+            // I/O
+            0x04000000..=0x040003FF => todo!("I/O Reg Write"),
+            // OAM
+            0x07000000..=0x070003FF => {
+                let ptr = self.oam.as_mut_ptr().add((addr & 0x03FF) as usize);
+                self.write_u32(ptr, val);
+            },
+            _ => panic!("[ERR] Invalid 32bit Bus Write Addr ${:#08X}", addr),
         }
     }
 
