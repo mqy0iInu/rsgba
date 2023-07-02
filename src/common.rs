@@ -57,7 +57,7 @@ pub const _SCREEN_H: u8 = 160;
 
 // =========================================================================
 pub trait IO {
-    fn write(&mut self, addr: u16, val: u8);
-    fn read(&mut self, addr: u16) -> u8;
-    fn update(&mut self, tick: u8);
+    fn read(&mut self, _addr: u32) -> u8;
+    fn write(&mut self, _addr: u32, _val: u8);
+    fn update(&mut self, _tick: u32);
 }

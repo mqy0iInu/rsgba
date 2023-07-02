@@ -1,3 +1,4 @@
+use bus::*;
 use bitflags::bitflags;
 
 bitflags! {
@@ -79,12 +80,10 @@ bitflags! {
 
 #[allow(dead_code)]
 pub struct CPU {
-    // [レジスタ]
-    reg :Register,
-
-    // [etc.]
+    reg: Register,
+    bus: Bus,
     mode: Mode,
-    tick: u32,    // クロックカウント
+    tick: u32,
 }
 
 #[allow(dead_code)]
@@ -95,6 +94,7 @@ impl CPU {
 
         CPU {
             reg: Register::new(),
+            bus: Bus::new(),
             mode: _mode,
             tick: 0,
         }
