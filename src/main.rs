@@ -1,6 +1,8 @@
 mod cpu;
 mod bus;
 mod common;
+mod thumb_op;
+mod arm_op;
 
 extern crate bitflags;
 extern crate bitvec;

@@ -52,7 +52,8 @@ https://developer.arm.com/documentation/ddi0234/b/introduction/about-the-arm7tdm
 ### Technical Reference Manual
 https://developer.arm.com/documentation/#cf[navigationhierarchiesproducts]=IP%20Products,Processors,Classic%20Processors,Arm7,ARM7TDMI
 ## GBA
-https://www.problemkaputt.de/gbatek.htm  
+https://gbadev.org/  
 https://gbadev.net/resources.html  
 https://gbadev.net/gbadoc/intro.html  
+https://www.problemkaputt.de/gbatek.htm  
 https://www.copetti.org/writings/consoles/game-boy-advance/  

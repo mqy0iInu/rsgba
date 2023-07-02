@@ -1,3 +1,5 @@
+use thumb_op::*;
+use arm_op::*;
 use bus::*;
 use bitflags::bitflags;
 
@@ -105,8 +107,10 @@ impl CPU {
         unsafe {
             // Fetch Thumb
             let _op: u16 = self.bus.read_hword(self.reg.pc);
-            // TODO Decode Thumb
-            // TODO Exec Thumb
+            // Decode Thumb
+            thumb_op_decode(_op);
+            // Exec Thumb
+            thumb_op_exec(_op);
         }
     }
 
@@ -116,8 +120,10 @@ impl CPU {
             // Fetch ARM
             let _op: u32 = ((self.bus.read_hword(self.reg.pc) as u32) << 16) |
                             (self.bus.read_hword(self.reg.pc + 1) as u32);
-            // TODO Decode ARM
-            // TODO Exec ARM
+            // Decode ARM
+            arm_op_decode(_op);
+            // Exec ARM
+            arm_op_exec(_op);
         }
     }
 
