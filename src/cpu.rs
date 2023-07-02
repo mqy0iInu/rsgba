@@ -5,7 +5,7 @@ use bitflags::bitflags;
 
 bitflags! {
     #[derive(Clone, Copy)]
-    struct PSR: u32 {
+    pub struct PSR: u32 {
         const N = 1 << 31;              // Negative Flag
         const Z = 1 << 30;              // Zero Flag
         const C = 1 << 29;              // Carry Flag
@@ -19,13 +19,13 @@ bitflags! {
 
 // ARM7TDMI レジスタ構造体
 #[allow(dead_code)]
-struct Register {
-    r: [u32; 12],     // 汎用レジスタ R0~R12
-    sp: u32,          // R13(SP)
-    lr: u32,          // R14(LR)
-    pc: u32,          // R15(PC)
-    cpsr: PSR,        // 現在ステータスレジスタ
-    spsr: [PSR; 5],   // 保存ステータスレジスタ(FIQ,SVC,Abort,IRQ,Undefined)
+pub struct Register {
+    pub r: [u32; 12],     // 汎用レジスタ R0~R12
+    pub sp: u32,          // R13(SP)
+    pub lr: u32,          // R14(LR)
+    pub pc: u32,          // R15(PC)
+    pub cpsr: PSR,        // 現在ステータスレジスタ
+    pub spsr: [PSR; 5],   // 保存ステータスレジスタ(FIQ,SVC,Abort,IRQ,Undefined)
 }
 
 impl Register {
@@ -82,7 +82,7 @@ bitflags! {
 
 #[allow(dead_code)]
 pub struct CPU {
-    reg: Register,
+    pub reg: Register,
     bus: Bus,
     mode: Mode,
     tick: u32,
@@ -106,11 +106,11 @@ impl CPU {
     fn op_thumb(&mut self) {
         unsafe {
             // Fetch Thumb
-            let _op: u16 = self.bus.read_hword(self.reg.pc);
+            let _instruction: u16 = self.bus.read_hword(self.reg.pc);
             // Decode Thumb
-            thumb_op_decode(_op);
+            let _format_data = thumb_op_decode(self,_instruction);
             // Exec Thumb
-            thumb_op_exec(_op);
+            thumb_op_exec(self, _format_data);
         }
     }
 
@@ -121,9 +121,9 @@ impl CPU {
             let _op: u32 = ((self.bus.read_hword(self.reg.pc) as u32) << 16) |
                             (self.bus.read_hword(self.reg.pc + 1) as u32);
             // Decode ARM
-            arm_op_decode(_op);
+            arm_op_decode(self, _op);
             // Exec ARM
-            arm_op_exec(_op);
+            arm_op_exec(self, _op);
         }
     }
 
@@ -133,8 +133,9 @@ impl CPU {
     }
 
     pub fn proc(&mut self) {
-        // Fetch & Decode & Execute
+        // ステータのTフラグ(Bit5)でThumb/ARM命令切り替え
         match self.reg.cpsr.contains(PSR::T) {
+            // Fetch & Decode & Execute
             false => self.op_thumb(),
             true => self.op_arm(),
         }
