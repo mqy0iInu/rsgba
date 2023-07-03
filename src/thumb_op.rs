@@ -72,7 +72,7 @@ pub enum ThumbInstruction {
     MultipleLoadStore(u8, u8, u8), // |L|Rb|Rlist|
 
     // Format16: 条件付き分岐
-    ConditionalBranch(u8, u8), // |Cond|Softset8|
+    ConditionalBranch(u8, i8), // |Cond|Softset8|
 
     // Format17: ソフトウェア割り込み
     SoftwareInterrupt(u8), // |Value8|
@@ -200,7 +200,7 @@ fn decode_format15(instruction: u16) -> ThumbInstruction {
 
 fn decode_format16(instruction: u16) -> ThumbInstruction {
     let cond: u8     = ((instruction & 0b0000_1111_0000_0000) >> 8) as u8;
-    let softset8: u8  =  (instruction & 0b0000_0000_1111_1111) as u8;
+    let softset8: i8  =  (instruction & 0b0000_0000_1111_1111) as i8;
     ThumbInstruction::ConditionalBranch(cond, softset8)
 }
 
@@ -223,6 +223,7 @@ fn decode_format19(instruction: u16) -> ThumbInstruction {
 pub fn thumb_format_decode(instruction: u16) -> (ThumbFormat, ThumbInstruction) {
     // Thumb命令のフォーマット判別（※ビットが立つ範囲で判定する）
     // FIXME Format1,2、Format16,17で最後のビット範囲が被る
+    // ※Format16のcondが0x0FはFormat17なので0b1101_1110_1111_1111までに変更した（あってるかは不明）
     let format: ThumbFormat = match instruction {
         0b0000_0000_0000_0000..=0b0001_1111_1111_1111 => ThumbFormat::Format01,
         0b0001_1100_0000_0000..=0b0001_1111_1111_1111 => ThumbFormat::Format02,
@@ -239,7 +240,7 @@ pub fn thumb_format_decode(instruction: u16) -> (ThumbFormat, ThumbInstruction) 
         0b1011_0000_0000_0000..=0b1011_0000_1111_1111 => ThumbFormat::Format13,
         0b1011_0100_0000_0000..=0b1011_1101_1111_1111 => ThumbFormat::Format14,
         0b1100_0000_0000_0000..=0b1100_1111_1111_1111 => ThumbFormat::Format15,
-        0b1101_0000_0000_0000..=0b1101_1111_1111_1111 => ThumbFormat::Format16,
+        0b1101_0000_0000_0000..=0b1101_1110_1111_1111 => ThumbFormat::Format16,
         0b1101_1111_0000_0000..=0b1101_1111_1111_1111 => ThumbFormat::Format17,
         0b1110_0000_0000_0000..=0b1110_0111_1111_1111 => ThumbFormat::Format18,
         0b1111_0000_0000_0000..=0b1111_1111_1111_1111 => ThumbFormat::Format19,
@@ -319,6 +320,146 @@ fn mvn(_cpu: &mut CPU, rs: u8, rd: u8)
 fn tst(_cpu: &mut CPU, rs: u8, rd: u8) {
     let _ret: u32 = _cpu.reg.r[rd as usize] & _cpu.reg.r[rs as usize];
     _cpu.psr_op_update(_ret, false, false);
+}
+
+fn beq(_cpu: &mut CPU, softset8: i8) -> bool {
+    if _cpu.reg.cpsr.contains(PSR::Z) {
+        let offset: i32 = softset8 as i32;
+        _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
+        true
+    } else {
+        false
+    }
+}
+
+fn bne(_cpu: &mut CPU, softset8: i8) -> bool {
+    if !_cpu.reg.cpsr.contains(PSR::Z) {
+        let offset: i32 = softset8 as i32;
+        _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
+        true
+    } else {
+        false
+    }
+}
+
+fn bcs(_cpu: &mut CPU, softset8: i8) -> bool {
+    if _cpu.reg.cpsr.contains(PSR::C) {
+        let offset: i32 = softset8 as i32;
+        _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
+        true
+    } else {
+        false
+    }
+}
+
+fn bcc(_cpu: &mut CPU, softset8: i8) -> bool {
+    if !_cpu.reg.cpsr.contains(PSR::C) {
+        let offset: i32 = softset8 as i32;
+        _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
+        true
+    } else {
+        false
+    }
+}
+
+fn bmi(_cpu: &mut CPU, softset8: i8) -> bool {
+    if _cpu.reg.cpsr.contains(PSR::N) {
+        let offset: i32 = softset8 as i32;
+        _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
+        true
+    } else {
+        false
+    }
+}
+
+fn bpl(_cpu: &mut CPU, softset8: i8) -> bool {
+    if !_cpu.reg.cpsr.contains(PSR::N) {
+        let offset: i32 = softset8 as i32;
+        _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
+        true
+    } else {
+        false
+    }
+}
+
+fn bvs(_cpu: &mut CPU, softset8: i8) -> bool {
+    if _cpu.reg.cpsr.contains(PSR::V) {
+        let offset: i32 = softset8 as i32;
+        _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
+        true
+    } else {
+        false
+    }
+}
+
+fn bvc(_cpu: &mut CPU, softset8: i8) -> bool {
+    if !_cpu.reg.cpsr.contains(PSR::V) {
+        let offset: i32 = softset8 as i32;
+        _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
+        true
+    } else {
+        false
+    }
+}
+
+fn bhi(_cpu: &mut CPU, softset8: i8) -> bool {
+    if _cpu.reg.cpsr.contains(PSR::C) && !_cpu.reg.cpsr.contains(PSR::Z) {
+        let offset: i32 = softset8 as i32;
+        _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
+        true
+    } else {
+        false
+    }
+}
+
+fn bls(_cpu: &mut CPU, softset8: i8) -> bool {
+    if !_cpu.reg.cpsr.contains(PSR::C) || _cpu.reg.cpsr.contains(PSR::Z) {
+        let offset: i32 = softset8 as i32;
+        _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
+        true
+    } else {
+        false
+    }
+}
+
+fn bge(_cpu: &mut CPU, softset8: i8) -> bool {
+    if (_cpu.reg.cpsr.contains(PSR::N) == _cpu.reg.cpsr.contains(PSR::V)) {
+        let offset: i32 = softset8 as i32;
+        _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
+        true
+    } else {
+        false
+    }
+}
+
+fn blt(_cpu: &mut CPU, softset8: i8) -> bool {
+    if (_cpu.reg.cpsr.contains(PSR::N) != _cpu.reg.cpsr.contains(PSR::V)) {
+        let offset: i32 = softset8 as i32;
+        _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
+        true
+    } else {
+        false
+    }
+}
+
+fn bgt(_cpu: &mut CPU, softset8: i8) -> bool {
+    if (!_cpu.reg.cpsr.contains(PSR::Z) && (_cpu.reg.cpsr.contains(PSR::N) == _cpu.reg.cpsr.contains(PSR::V))) {
+        let offset: i32 = softset8 as i32;
+        _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
+        true
+    } else {
+        false
+    }
+}
+
+fn ble(_cpu: &mut CPU, softset8: i8) -> bool {
+    if (_cpu.reg.cpsr.contains(PSR::Z) || (_cpu.reg.cpsr.contains(PSR::N) != _cpu.reg.cpsr.contains(PSR::V))) {
+        let offset: i32 = softset8 as i32;
+        _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
+        true
+    } else {
+        false
+    }
 }
 
 // SWI Imm8bit
@@ -447,9 +588,31 @@ fn exec_op_format15(_cpu: &mut CPU, _op: ThumbInstruction) {
 }
 
 fn exec_op_format16(_cpu: &mut CPU, _op: ThumbInstruction) {
-    // TODO
+    let mut _ret = false;
     if let ThumbInstruction::ConditionalBranch(cond, softset8) = _op {
         trace!("Format16: ConditionalBranch - Cond: {}, Softset8: {}", cond, softset8);
+        match cond {
+            0x00 => _ret = beq(_cpu, softset8),
+            0x01 => _ret = bne(_cpu, softset8),
+            0x02 => _ret = bcs(_cpu, softset8),
+            0x03 => _ret = bcc(_cpu, softset8),
+            0x04 => _ret = bmi(_cpu, softset8),
+            0x05 => _ret = bpl(_cpu, softset8),
+            0x06 => _ret = bvs(_cpu, softset8),
+            0x07 => _ret = bvc(_cpu, softset8),
+            0x08 => _ret = bhi(_cpu, softset8),
+            0x09 => _ret = bls(_cpu, softset8),
+            0x0A => _ret = bge(_cpu, softset8),
+            0x0B => _ret = blt(_cpu, softset8),
+            0x0C => _ret = bgt(_cpu, softset8),
+            0x0D => _ret = ble(_cpu, softset8),
+            _ => panic!("Unknown Format16(ALU Op) Execute"),
+        }
+        if _ret != false {
+            _cpu.tick += 3; // Cycle += 2S+1N
+        }else{
+            _cpu.tick += 1; // Cycle += 1S
+        }
     }
 }
 

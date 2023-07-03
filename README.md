@@ -10,12 +10,12 @@ I played with this GBA many times and took it apart many times to understand the
 It really is a beautiful and well made console!  
 
 <div align="center">
-<img src="dev/IMG_20230702_152753.jpg" alt="30dnes" width="60%">
+<img src="dev/IMG_20230702_152753.jpg" alt="gbatop" width="60%">
 </div>
 
 <div align="center">
-<img src="dev/IMG_20230702_152811.jpg" alt="2dgbcs" width="48%">
-<img src="dev/IMG_20230702_152819.jpg" alt="2dgbcs" width="48%">
+<img src="dev/IMG_20230702_152811.jpg" alt="gbal" width="48%">
+<img src="dev/IMG_20230702_152819.jpg" alt="gbar" width="48%">
 </div>
 
 # 📍Future / PJ Status📊
@@ -47,11 +47,11 @@ Developing (Since July 2023)
 |GBA H/W Bug`s| ➖ (TBD)|
 
 # 📍Reference🎓📘📖
-## ARM7TDMI
+## 📍ARM7TDMI
 https://developer.arm.com/documentation/ddi0234/b/introduction/about-the-arm7tdmi-s-processor
-### Technical Reference Manual
+### 📍Technical Reference Manual
 https://developer.arm.com/documentation/#cf[navigationhierarchiesproducts]=IP%20Products,Processors,Classic%20Processors,Arm7,ARM7TDMI
-## GBA
+## 📍GBA
 https://gbadev.org/  
 https://gbadev.net/resources.html  
 https://gbadev.net/gbadoc/intro.html  
