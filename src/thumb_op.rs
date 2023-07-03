@@ -223,28 +223,28 @@ pub fn thumb_format_decode(instruction: u16) -> ThumbInstruction {
     // MSBから5ビット取得
     let format_bits = (instruction >> 11) & 0b11111;
 
-    // Thumb命令のフォーマット判別
-    // ※ビットが立つ範囲で判定する
+    // Thumb命令のフォーマット判別（※ビットが立つ範囲で判定する）
+    // FIXME Format1,2、Format16,17で最後のビット範囲が被る
     let format = match format_bits {
-        0b0001_1111_1111_1111 => ThumbFormat::Format02,
-        0b0000_0111_1111_1111..=0b0001_1111_1111_1111 => ThumbFormat::Format01,
-        0b0011_1111_1111_1111 => ThumbFormat::Format03,
-        0b0100_0011_1111_1111 => ThumbFormat::Format04,
-        0b0100_0111_1111_1111 => ThumbFormat::Format05,
-        0b0100_1111_1111_1111 => ThumbFormat::Format06,
-        0b0101_1101_1111_1111 => ThumbFormat::Format07,
-        0b0101_1111_1111_1111 => ThumbFormat::Format08,
-        0b0111_1111_1111_1111 => ThumbFormat::Format09,
-        0b1000_1111_1111_1111 => ThumbFormat::Format10,
-        0b1001_1111_1111_1111 => ThumbFormat::Format11,
-        0b1010_1111_1111_1111 => ThumbFormat::Format12,
-        0b1011_0000_1111_1111 => ThumbFormat::Format13,
-        0b1011_1101_1111_1111 => ThumbFormat::Format14,
-        0b1100_1111_1111_1111 => ThumbFormat::Format15,
-        0b1101_1111_1111_1111 => ThumbFormat::Format17,
-        0b1101_0001_1111_1111..=0b1101_1111_1111_1111 => ThumbFormat::Format16,
-        0b1110_0111_1111_1111 => ThumbFormat::Format18,
-        0b1111_1111_1111_1111 => ThumbFormat::Format19,
+        0b0000_0000_0000_0000..=0b0001_1111_1111_1111 => ThumbFormat::Format01,
+        0b0001_1100_0000_0000..=0b0001_1111_1111_1111 => ThumbFormat::Format02,
+        0b0010_0000_0000_0000..=0b0011_1111_1111_1111 => ThumbFormat::Format03,
+        0b0100_0000_0000_0000..=0b0100_0011_1111_1111 => ThumbFormat::Format04,
+        0b0100_0100_0000_0000..=0b0100_0111_1111_1111 => ThumbFormat::Format05,
+        0b0100_1000_0000_0000..=0b0100_1111_1111_1111 => ThumbFormat::Format06,
+        0b0101_0000_0000_0000..=0b0101_1101_1111_1111 => ThumbFormat::Format07,
+        0b0101_0000_0000_0000..=0b0101_1111_1111_1111 => ThumbFormat::Format08,
+        0b0110_0000_0000_0000..=0b0111_1111_1111_1111 => ThumbFormat::Format09,
+        0b1000_0000_0000_0000..=0b1000_1111_1111_1111 => ThumbFormat::Format10,
+        0b1001_0000_0000_0000..=0b1001_1111_1111_1111 => ThumbFormat::Format11,
+        0b1010_0000_0000_0000..=0b1010_1111_1111_1111 => ThumbFormat::Format12,
+        0b1011_0000_0000_0000..=0b1011_0000_1111_1111 => ThumbFormat::Format13,
+        0b1011_0100_0000_0000..=0b1011_1101_1111_1111 => ThumbFormat::Format14,
+        0b1100_0000_0000_0000..=0b1100_1111_1111_1111 => ThumbFormat::Format15,
+        0b1101_0000_0000_0000..=0b1101_1111_1111_1111 => ThumbFormat::Format16,
+        0b1101_1111_0000_0000..=0b1101_1111_1111_1111 => ThumbFormat::Format17,
+        0b1110_0000_0000_0000..=0b1110_0111_1111_1111 => ThumbFormat::Format18,
+        0b1111_0000_0000_0000..=0b1111_1111_1111_1111 => ThumbFormat::Format19,
         _ => panic!("Unknown Thumb instruction format"),
     };
 
