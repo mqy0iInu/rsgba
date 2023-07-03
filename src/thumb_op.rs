@@ -220,12 +220,9 @@ fn decode_format19(instruction: u16) -> ThumbInstruction {
 }
 
 pub fn thumb_format_decode(instruction: u16) -> ThumbInstruction {
-    // MSBから5ビット取得
-    let format_bits = (instruction >> 11) & 0b11111;
-
     // Thumb命令のフォーマット判別（※ビットが立つ範囲で判定する）
     // FIXME Format1,2、Format16,17で最後のビット範囲が被る
-    let format = match format_bits {
+    let format = match instruction {
         0b0000_0000_0000_0000..=0b0001_1111_1111_1111 => ThumbFormat::Format01,
         0b0001_1100_0000_0000..=0b0001_1111_1111_1111 => ThumbFormat::Format02,
         0b0010_0000_0000_0000..=0b0011_1111_1111_1111 => ThumbFormat::Format03,
