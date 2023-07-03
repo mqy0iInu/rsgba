@@ -8,5 +8,5 @@ pub fn arm_op_decode(_cpu: &mut CPU, _op: u32) {
 
 // TODO ARM7TDMI ARM命令の実行
 pub fn arm_op_exec(_cpu: &mut CPU, _op: u32) {
-    todo!("Plz! ARM ARM OP Exec Func Impl!")
+    todo!("Plz! ARM OP Exec Func Impl!")
 }

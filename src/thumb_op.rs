@@ -1,3 +1,4 @@
+use bitflags::Flags;
 use cpu::*;
 
 #[derive(Debug, PartialEq)]
@@ -219,10 +220,10 @@ fn decode_format19(instruction: u16) -> ThumbInstruction {
     ThumbInstruction::LongBranchWithLink(h, offset)
 }
 
-pub fn thumb_format_decode(instruction: u16) -> ThumbInstruction {
+pub fn thumb_format_decode(instruction: u16) -> (ThumbFormat, ThumbInstruction) {
     // Thumb命令のフォーマット判別（※ビットが立つ範囲で判定する）
     // FIXME Format1,2、Format16,17で最後のビット範囲が被る
-    let format = match instruction {
+    let format: ThumbFormat = match instruction {
         0b0000_0000_0000_0000..=0b0001_1111_1111_1111 => ThumbFormat::Format01,
         0b0001_1100_0000_0000..=0b0001_1111_1111_1111 => ThumbFormat::Format02,
         0b0010_0000_0000_0000..=0b0011_1111_1111_1111 => ThumbFormat::Format03,
@@ -247,37 +248,262 @@ pub fn thumb_format_decode(instruction: u16) -> ThumbInstruction {
 
     // Thumb命令のフォーマットに応じて命令をでコード
     match format {
-        ThumbFormat::Format01 => decode_format01(instruction),
-        ThumbFormat::Format02 => decode_format02(instruction),
-        ThumbFormat::Format03 => decode_format03(instruction),
-        ThumbFormat::Format04 => decode_format04(instruction),
-        ThumbFormat::Format05 => decode_format05(instruction),
-        ThumbFormat::Format06 => decode_format06(instruction),
-        ThumbFormat::Format07 => decode_format07(instruction),
-        ThumbFormat::Format08 => decode_format08(instruction),
-        ThumbFormat::Format09 => decode_format09(instruction),
-        ThumbFormat::Format10 => decode_format10(instruction),
-        ThumbFormat::Format11 => decode_format11(instruction),
-        ThumbFormat::Format12 => decode_format12(instruction),
-        ThumbFormat::Format13 => decode_format13(instruction),
-        ThumbFormat::Format14 => decode_format14(instruction),
-        ThumbFormat::Format15 => decode_format15(instruction),
-        ThumbFormat::Format16 => decode_format16(instruction),
-        ThumbFormat::Format17 => decode_format17(instruction),
-        ThumbFormat::Format18 => decode_format18(instruction),
-        ThumbFormat::Format19 => decode_format19(instruction),
+        ThumbFormat::Format01 => (format, decode_format01(instruction)),
+        ThumbFormat::Format02 => (format, decode_format02(instruction)),
+        ThumbFormat::Format03 => (format, decode_format03(instruction)),
+        ThumbFormat::Format04 => (format, decode_format04(instruction)),
+        ThumbFormat::Format05 => (format, decode_format05(instruction)),
+        ThumbFormat::Format06 => (format, decode_format06(instruction)),
+        ThumbFormat::Format07 => (format, decode_format07(instruction)),
+        ThumbFormat::Format08 => (format, decode_format08(instruction)),
+        ThumbFormat::Format09 => (format, decode_format09(instruction)),
+        ThumbFormat::Format10 => (format, decode_format10(instruction)),
+        ThumbFormat::Format11 => (format, decode_format11(instruction)),
+        ThumbFormat::Format12 => (format, decode_format12(instruction)),
+        ThumbFormat::Format13 => (format, decode_format13(instruction)),
+        ThumbFormat::Format14 => (format, decode_format14(instruction)),
+        ThumbFormat::Format15 => (format, decode_format15(instruction)),
+        ThumbFormat::Format16 => (format, decode_format16(instruction)),
+        ThumbFormat::Format17 => (format, decode_format17(instruction)),
+        ThumbFormat::Format18 => (format, decode_format18(instruction)),
+        ThumbFormat::Format19 => (format, decode_format19(instruction)),
     }
 }
 
-// TODO ARM7TDMI Thumb命令のデコード
-pub fn thumb_op_decode(_cpu: &mut CPU, _instruction: u16) -> ThumbInstruction{
-    let _format_data = thumb_format_decode(_instruction);
-    _format_data
+// fn mov(_cpu: &mut CPU, _op: ThumbInstruction)
+// {
+//     // TODO
+// }
+
+// AND Rd, Rs
+fn and(_cpu: &mut CPU, rs: u8, rd: u8)
+{
+    let _ret: u32 = _cpu.reg.r[rd as usize] & _cpu.reg.r[rs as usize];
+    _cpu.reg.r[rd as usize] = _ret;
+    _cpu.psr_op_update(_ret, false, false);
 }
 
-// TODO ARM7TDMI Thumb命令の実行
-pub fn thumb_op_exec(_cpu: &mut CPU, _format_data: ThumbInstruction) {
-    todo!("ARM7TDMI Thumb命令の実行");
+// EOR Rd, Rs
+fn eor(_cpu: &mut CPU, rs: u8, rd: u8)
+{
+    let _ret: u32 = _cpu.reg.r[rd as usize] ^ _cpu.reg.r[rs as usize];
+    _cpu.reg.r[rd as usize] = _ret;
+    _cpu.psr_op_update(_ret, false, false);
+}
+
+// ORR Rd, Rs
+fn orr(_cpu: &mut CPU, rs: u8, rd: u8)
+{
+    let _ret: u32 = _cpu.reg.r[rd as usize] | _cpu.reg.r[rs as usize];
+    _cpu.reg.r[rd as usize] = _ret;
+    _cpu.psr_op_update(_ret, false, false);
+}
+
+// BIC Rd, Rs
+fn bic(_cpu: &mut CPU, rs: u8, rd: u8)
+{
+    let _ret: u32 = _cpu.reg.r[rd as usize] & (!_cpu.reg.r[rs as usize]);
+    _cpu.reg.r[rd as usize] = _ret;
+    _cpu.psr_op_update(_ret, false, false);
+}
+
+// MVN Rd, Rs
+fn mvn(_cpu: &mut CPU, rs: u8, rd: u8)
+{
+    let _ret = !_cpu.reg.r[rs as usize];
+    _cpu.reg.r[rd as usize] = _ret;
+    _cpu.psr_op_update(_ret, false, false);
+}
+
+// TST Rd, Rs
+fn tst(_cpu: &mut CPU, rs: u8, rd: u8) {
+    let _ret: u32 = _cpu.reg.r[rd as usize] & _cpu.reg.r[rs as usize];
+    _cpu.psr_op_update(_ret, false, false);
+}
+
+// SWI Imm8bit
+fn swi(_cpu: &mut CPU, _val: u8)
+{
+    // PCにImm8bit
+    _cpu.reg.pc = _val as u32;
+    // modeをSVCに
+    _cpu.reg.cpsr.insert(PSR::MODE_SVC);
+    // LRを+=2
+    _cpu.reg.lr += 2;
+}
+
+fn exec_op_format01(_cpu: &mut CPU, _op: ThumbInstruction) {
+    if let ThumbInstruction::MoveShiftedRegister(op, offset, rs, rd) = _op {
+        trace!("Format01: MoveShiftedRegister - Op: {}, Offset: {}, Rs: {}, Rd: {}", op, offset, rs, rd);
+        // TODO
+    }
+}
+
+fn exec_op_format02(_cpu: &mut CPU, _op: ThumbInstruction) {
+    // TODO
+    if let ThumbInstruction::AddSubtract(op, offset, rs, rd) = _op {
+        trace!("Format02: AddSubtract - Op: {}, Offset: {}, Rs: {}, Rd: {}", op, offset, rs, rd);
+    }
+}
+
+fn exec_op_format03(_cpu: &mut CPU, _op: ThumbInstruction) {
+    // TODO
+    if let ThumbInstruction::MoveCompareAddSubtractImmediate(op, rd, offset) = _op {
+        trace!("Format03: MoveCompareAddSubtractImmediate - Op: {}, Rd: {}, Offset: {}", op, rd, offset);
+    }
+}
+
+fn exec_op_format04(_cpu: &mut CPU, _op: ThumbInstruction) {
+    if let ThumbInstruction::ALUOperation(op, rs, rd) = _op {
+        trace!("Format04: ALUOperation - Op: {}, Rs: {}, Rd: {}", op, rs, rd);
+        match op {
+            0b0000 => and(_cpu, rs, rd),
+            0b0001 => eor(_cpu, rs, rd),
+            0b0010 => orr(_cpu, rs, rd),
+            0b0011 => bic(_cpu, rs, rd),
+            0b0100 => mvn(_cpu, rs, rd),
+            0b0101 => tst(_cpu, rs, rd),
+            _ => panic!("Unknown Format04(ALU Op) Execute"),
+        }
+        _cpu.tick += 1; // Cycle += 1S
+    }
+}
+
+fn exec_op_format05(_cpu: &mut CPU, _op: ThumbInstruction) {
+    // TODO
+    if let ThumbInstruction::HighRegisterOperationsBranchExchange(op, h1, h2, rs_hs, rd_hd) = _op {
+        trace!("Format05: HighRegisterOperationsBranchExchange - Op: {}, H1: {}, H2: {}, Rs/Hs: {}, Rd/Hd: {}", op, h1, h2, rs_hs, rd_hd);
+    }
+}
+
+fn exec_op_format06(_cpu: &mut CPU, _op: ThumbInstruction) {
+    // TODO
+    if let ThumbInstruction::PCRelativeLoad(rd, word8) = _op {
+        trace!("Format06: PCRelativeLoad - Rd: {}, Word8: {}", rd, word8);
+    }
+}
+
+fn exec_op_format07(_cpu: &mut CPU, _op: ThumbInstruction) {
+    // TODO
+    if let ThumbInstruction::LoadStoreWithRelativeOffset(l, b, ro, rb, rd) = _op {
+        trace!("Format07: LoadStoreWithRelativeOffset - L: {}, B: {}, Ro: {}, Rb: {}, Rd: {}", l, b, ro, rb, rd);
+    }
+}
+
+fn exec_op_format08(_cpu: &mut CPU, _op: ThumbInstruction) {
+    // TODO
+    if let ThumbInstruction::LoadStoreSignExtendedByteHalfword(h, s, ro, rb, rd) = _op {
+        trace!("Format08: LoadStoreSignExtendedByteHalfword - H: {}, S: {}, Ro: {}, Rb: {}, Rd: {}", h, s, ro, rb, rd);
+    }
+}
+
+fn exec_op_format09(_cpu: &mut CPU, _op: ThumbInstruction) {
+    // TODO
+    if let ThumbInstruction::LoadStoreWithImmediateOffset(b, l, offset5, rb, rd) = _op {
+        trace!("Format09: LoadStoreWithImmediateOffset - B: {}, L: {}, Offset5: {}, Rb: {}, Rd: {}", b, l, offset5, rb, rd);
+    }
+}
+
+fn exec_op_format10(_cpu: &mut CPU, _op: ThumbInstruction) {
+    // TODO
+    if let ThumbInstruction::LoadStoreHalfword(l, offset5, rb, rd) = _op {
+        trace!("Format10: LoadStoreHalfword - L: {}, Offset5: {}, Rb: {}, Rd: {}", l, offset5, rb, rd);
+    }
+}
+
+fn exec_op_format11(_cpu: &mut CPU, _op: ThumbInstruction) {
+    // TODO
+    if let ThumbInstruction::SPRelativeLoadStore(l, rb, word8) = _op {
+        trace!("Format11: SPRelativeLoadStore - L: {}, Rb: {}, Word8: {}", l, rb, word8);
+    }
+}
+
+fn exec_op_format12(_cpu: &mut CPU, _op: ThumbInstruction) {
+    // TODO
+    if let ThumbInstruction::LoadAddress(sp, rb, word8) = _op {
+        trace!("Format12: LoadAddress - SP: {}, Rb: {}, Word8: {}", sp, rb, word8);
+    }
+}
+
+fn exec_op_format13(_cpu: &mut CPU, _op: ThumbInstruction) {
+    // TODO
+    if let ThumbInstruction::AddOffsetToStackPointer(s, sword7) = _op {
+        trace!("Format13: AddOffsetToStackPointer - S: {}, SWord7: {}", s, sword7);
+    }
+}
+
+fn exec_op_format14(_cpu: &mut CPU, _op: ThumbInstruction) {
+    // TODO
+    if let ThumbInstruction::PushPopRegisters(l, r, rlist) = _op {
+        trace!("Format14: PushPopRegisters - L: {}, R: {}, Rlist: {}", l, r, rlist);
+    }
+}
+
+fn exec_op_format15(_cpu: &mut CPU, _op: ThumbInstruction) {
+    // TODO
+    if let ThumbInstruction::MultipleLoadStore(l, rb, rlist) = _op {
+        trace!("Format15: MultipleLoadStore - L: {}, Rb: {}, Rlist: {}", l, rb, rlist);
+    }
+}
+
+fn exec_op_format16(_cpu: &mut CPU, _op: ThumbInstruction) {
+    // TODO
+    if let ThumbInstruction::ConditionalBranch(cond, softset8) = _op {
+        trace!("Format16: ConditionalBranch - Cond: {}, Softset8: {}", cond, softset8);
+    }
+}
+
+fn exec_op_format17(_cpu: &mut CPU, _op: ThumbInstruction) {
+    if let ThumbInstruction::SoftwareInterrupt(value8) = _op {
+        trace!("Format17: SoftwareInterrupt - Value8: {}", value8);
+        swi(_cpu, value8);
+        _cpu.tick += 3; // Cycle += 2S+1N
+    }
+}
+
+fn exec_op_format18(_cpu: &mut CPU, _op: ThumbInstruction) {
+    // TODO
+    if let ThumbInstruction::UnconditionalBranch(offset11) = _op {
+        trace!("Format18: UnconditionalBranch - Offset11: {}", offset11);
+    }
+}
+
+fn exec_op_format19(_cpu: &mut CPU, _op: ThumbInstruction) {
+    // TODO
+    if let ThumbInstruction::LongBranchWithLink(h, offset) = _op {
+        trace!("Format19: LongBranchWithLink - H: {}, Offset: {}", h, offset);
+    }
+}
+
+// ARM7TDMI Thumb命令 デコード
+pub fn thumb_op_decode(_cpu: &mut CPU, _instruction: u16) -> (ThumbFormat, ThumbInstruction) {
+    let _op_format = thumb_format_decode(_instruction);
+    _op_format
+}
+
+// ARM7TDMI Thumb命令の実行
+pub fn thumb_op_exec(_cpu: &mut CPU, _format: ThumbFormat, _op_format: ThumbInstruction) {
+    match _format {
+        ThumbFormat::Format01 => exec_op_format01(_cpu, _op_format),
+        ThumbFormat::Format02 => exec_op_format02(_cpu, _op_format),
+        ThumbFormat::Format03 => exec_op_format03(_cpu, _op_format),
+        ThumbFormat::Format04 => exec_op_format04(_cpu, _op_format),
+        ThumbFormat::Format05 => exec_op_format05(_cpu, _op_format),
+        ThumbFormat::Format06 => exec_op_format06(_cpu, _op_format),
+        ThumbFormat::Format07 => exec_op_format07(_cpu, _op_format),
+        ThumbFormat::Format08 => exec_op_format08(_cpu, _op_format),
+        ThumbFormat::Format09 => exec_op_format09(_cpu, _op_format),
+        ThumbFormat::Format10 => exec_op_format10(_cpu, _op_format),
+        ThumbFormat::Format11 => exec_op_format11(_cpu, _op_format),
+        ThumbFormat::Format12 => exec_op_format12(_cpu, _op_format),
+        ThumbFormat::Format13 => exec_op_format13(_cpu, _op_format),
+        ThumbFormat::Format14 => exec_op_format14(_cpu, _op_format),
+        ThumbFormat::Format15 => exec_op_format15(_cpu, _op_format),
+        ThumbFormat::Format16 => exec_op_format16(_cpu, _op_format),
+        ThumbFormat::Format17 => exec_op_format17(_cpu, _op_format),
+        ThumbFormat::Format18 => exec_op_format18(_cpu, _op_format),
+        ThumbFormat::Format19 => exec_op_format19(_cpu, _op_format),
+    }
 }
 
 #[cfg(test)]

@@ -1,3 +1,4 @@
+use common::*;
 use thumb_op::*;
 use arm_op::*;
 use bus::*;
@@ -13,7 +14,15 @@ bitflags! {
         const I = 1 << 7;               // IRQ disable
         const F = 1 << 6;               // FIQ disable
         const T = 1 << 5;               // Thumb state indicator
-        const MODE_BITS = 0b0000_1111;  // Mode Bits
+
+        // Bit[4:0]
+        const MODE_USER = 0b0001_0000;  // User Mode
+        const MODE_FIQ  = 0b0001_0001;  // FIQ Mode
+        const MODE_IRQ  = 0b0001_0010;  // IRQ Mode
+        const MODE_SVC  = 0b0001_0011;  // Supervisor Mode
+        const MODE_ABT  = 0b0001_0101;  // Abort Mode
+        const MODE_UDF  = 0b0001_0111;  // Undefined Mode
+        const MODE_SYS  = 0b0001_1111;  // System Mode
     }
 }
 
@@ -67,37 +76,19 @@ impl Register {
     }
 }
 
-bitflags! {
-    #[derive(Clone, Copy)]
-    struct Mode: u8 {
-        const USER = 0b0001_0000;  // User Mode
-        const FIQ  = 0b0001_0001;  // FIQ Mode
-        const IRQ  = 0b0001_0010;  // IRQ Mode
-        const SVC  = 0b0001_0011;  // Supervisor Mode
-        const ABT  = 0b0001_0101;  // Abort Mode
-        const UDF  = 0b0001_0111;  // Undefined Mode
-        const SYS  = 0b0001_1111;  // System Mode
-    }
-}
-
 #[allow(dead_code)]
 pub struct CPU {
-    pub reg: Register,
     bus: Bus,
-    mode: Mode,
-    tick: u32,
+    pub reg: Register,
+    pub tick: u32,
 }
 
 #[allow(dead_code)]
 impl CPU {
     pub fn new() -> Self {
-        let mut _mode = Mode::empty();
-        _mode.insert(Mode::USER);
-
         CPU {
-            reg: Register::new(),
             bus: Bus::new(),
-            mode: _mode,
+            reg: Register::new(),
             tick: 0,
         }
     }
@@ -108,9 +99,9 @@ impl CPU {
             // Fetch Thumb
             let _instruction: u16 = self.bus.read_hword(self.reg.pc);
             // Decode Thumb
-            let _format_data = thumb_op_decode(self,_instruction);
+            let (_format, _format_data) = thumb_op_decode(self,_instruction);
             // Exec Thumb
-            thumb_op_exec(self, _format_data);
+            thumb_op_exec(self, _format, _format_data);
         }
     }
 
@@ -127,11 +118,6 @@ impl CPU {
         }
     }
 
-    fn decode_and_exec(&mut self, _op: u32) {
-        // TODO
-        trace!("OP: {:#04}", _op);
-    }
-
     pub fn proc(&mut self) {
         // ステータのTフラグ(Bit5)でThumb/ARM命令切り替え
         match self.reg.cpsr.contains(PSR::T) {
@@ -141,5 +127,36 @@ impl CPU {
         }
 
         self.bus.update(self.tick);
+    }
+
+    pub fn psr_op_update(&mut self, ret: u32, is_carry: bool, is_ovf: bool) {
+
+        // N Flag
+        if (ret & _BIT_31) != 0 {
+            self.reg.cpsr.insert(PSR::N);
+        } else {
+            self.reg.cpsr.remove(PSR::N);
+        }
+
+        // Z Flag
+        if ret == 0 {
+            self.reg.cpsr.insert(PSR::Z);
+        } else {
+            self.reg.cpsr.remove(PSR::Z);
+        }
+
+        // C Flag
+        if is_carry {
+            self.reg.cpsr.insert(PSR::C);
+        } else {
+            self.reg.cpsr.remove(PSR::C);
+        }
+
+        // V Flag
+        if is_ovf {
+            self.reg.cpsr.insert(PSR::V);
+        } else {
+            self.reg.cpsr.remove(PSR::V);
+        }
     }
 }
