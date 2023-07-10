@@ -1,4 +1,4 @@
-use bitflags::Flags;
+// use bitflags::Flags;
 use cpu::*;
 
 #[derive(Debug, PartialEq)]
@@ -271,6 +271,26 @@ pub fn thumb_format_decode(instruction: u16) -> (ThumbFormat, ThumbInstruction) 
     }
 }
 
+// ADD Rd, Rs
+fn add(_cpu: &mut CPU, rs: u8, rd: u8) {
+    let _ret: u32 = _cpu.reg.r[rd as usize].wrapping_add(_cpu.reg.r[rs as usize]);
+    _cpu.reg.r[rd as usize] = _ret;
+    _cpu.psr_op_update(_ret, false, false);
+}
+
+// SUB Rd, Rs
+fn sub(_cpu: &mut CPU, rs: u8, rd: u8) {
+    let _ret: u32 = _cpu.reg.r[rd as usize].wrapping_sub(_cpu.reg.r[rs as usize]);
+    _cpu.reg.r[rd as usize] = _ret;
+    _cpu.psr_op_update(_ret, true, false);
+}
+
+// CMP Rd, Rs
+fn cmp(_cpu: &mut CPU, rs: u8, rd: u8) {
+    let _ret: u32 = _cpu.reg.r[rd as usize].wrapping_sub(_cpu.reg.r[rs as usize]);
+    _cpu.psr_op_update(_ret, true, false);
+}
+
 // fn mov(_cpu: &mut CPU, _op: ThumbInstruction)
 // {
 //     // TODO
@@ -423,7 +443,7 @@ fn bls(_cpu: &mut CPU, softset8: i8) -> bool {
 }
 
 fn bge(_cpu: &mut CPU, softset8: i8) -> bool {
-    if (_cpu.reg.cpsr.contains(PSR::N) == _cpu.reg.cpsr.contains(PSR::V)) {
+    if _cpu.reg.cpsr.contains(PSR::N) == _cpu.reg.cpsr.contains(PSR::V) {
         let offset: i32 = softset8 as i32;
         _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
         true
@@ -433,7 +453,7 @@ fn bge(_cpu: &mut CPU, softset8: i8) -> bool {
 }
 
 fn blt(_cpu: &mut CPU, softset8: i8) -> bool {
-    if (_cpu.reg.cpsr.contains(PSR::N) != _cpu.reg.cpsr.contains(PSR::V)) {
+    if _cpu.reg.cpsr.contains(PSR::N) != _cpu.reg.cpsr.contains(PSR::V) {
         let offset: i32 = softset8 as i32;
         _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
         true
@@ -443,7 +463,7 @@ fn blt(_cpu: &mut CPU, softset8: i8) -> bool {
 }
 
 fn bgt(_cpu: &mut CPU, softset8: i8) -> bool {
-    if (!_cpu.reg.cpsr.contains(PSR::Z) && (_cpu.reg.cpsr.contains(PSR::N) == _cpu.reg.cpsr.contains(PSR::V))) {
+    if !_cpu.reg.cpsr.contains(PSR::Z) && (_cpu.reg.cpsr.contains(PSR::N) == _cpu.reg.cpsr.contains(PSR::V)) {
         let offset: i32 = softset8 as i32;
         _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
         true
@@ -453,7 +473,7 @@ fn bgt(_cpu: &mut CPU, softset8: i8) -> bool {
 }
 
 fn ble(_cpu: &mut CPU, softset8: i8) -> bool {
-    if (_cpu.reg.cpsr.contains(PSR::Z) || (_cpu.reg.cpsr.contains(PSR::N) != _cpu.reg.cpsr.contains(PSR::V))) {
+    if _cpu.reg.cpsr.contains(PSR::Z) || (_cpu.reg.cpsr.contains(PSR::N) != _cpu.reg.cpsr.contains(PSR::V)) {
         let offset: i32 = softset8 as i32;
         _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
         true
@@ -471,6 +491,17 @@ fn swi(_cpu: &mut CPU, _val: u8)
     _cpu.reg.cpsr.insert(PSR::MODE_SVC);
     // LRを+=2
     _cpu.reg.lr += 2;
+}
+
+fn b(_cpu: &mut CPU, softset11: i16) {
+    let offset: i32 = softset11 as i32;
+    _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
+}
+
+fn bl(_cpu: &mut CPU, softset11: i16) {
+    let offset: i32 = softset11 as i32;
+    _cpu.reg.lr = _cpu.reg.pc.wrapping_add(2);
+    _cpu.reg.pc = _cpu.reg.pc.wrapping_add((offset << 1) as u32 + 2);
 }
 
 fn exec_op_format01(_cpu: &mut CPU, _op: ThumbInstruction) {

@@ -18,15 +18,15 @@ It really is a beautiful and well made console!
 <img src="dev/IMG_20230702_152819.jpg" alt="gbar" width="48%">
 </div>
 
-# 📍Future / PJ Status📊
-
-Developing (Since July 2023)
-  - 
+# 📍PJ Status📊
+> **Warning**  
+> This repository is under development. (Since July 2023)
 
 | Task | Status |
 |-----|-------|
 |ARM7TDMI Thumb Opcodes (16bit)| ✅ (complete)|
 |ARM7TDMI ARM Opcodes (32bit)| 🔜 (future)|
+|3-Stage Pipeline| 🔜 (future)|
 |Bus (8/16/32bit)| ✅ (complete)|
 |DMA| 🔜 (future)|
 |Timer| 🔜 (future)|
